@@ -1,0 +1,143 @@
+﻿using System;
+using System.Timers;
+using HealthCheck.Interceptors;
+using Ninject.Extensions.Interception;
+
+public class CircuitBreaker : SimpleInterceptor
+{
+    private readonly object monitor = new object();
+    private CircuitBreakerState state;
+    private int failures;
+    private int threshold;
+    private TimeSpan timeout;
+
+    public CircuitBreaker()
+    {
+        this.threshold = 5;
+        this.timeout = TimeSpan.FromMinutes(1);
+        MoveToClosedState();
+    }
+
+    protected override void BeforeInvoke(IInvocation invocation)
+    {
+        using (TimedLock.Lock(monitor))
+        {
+            state.ProtectedCodeIsAboutToBeCalled();
+        }
+
+        try
+        {
+            invocation.Proceed();
+        }
+        catch (Exception e)
+        {
+            using (TimedLock.Lock(monitor))
+            {
+                failures++;
+                state.ActUponException(e);
+            }
+            throw;
+        }
+
+        using (TimedLock.Lock(monitor))
+        {
+            state.ProtectedCodeHasBeenCalled();
+        }
+    }
+
+    private void MoveToClosedState()
+    {
+        state = new ClosedState(this);
+    }
+ 
+    private void MoveToOpenState()
+    {
+        state = new OpenState(this);
+    }
+ 
+    private void MoveToHalfOpenState()
+    {
+        state = new HalfOpenState(this);
+    }
+ 
+    private void ResetFailureCount()
+    {
+        failures = 0;
+    }
+ 
+    private bool ThresholdReached()
+    {
+        return failures >= threshold;
+    }
+ 
+    private abstract class CircuitBreakerState
+    {
+        protected readonly CircuitBreaker circuitBreaker;
+ 
+        protected CircuitBreakerState(CircuitBreaker circuitBreaker)
+        {
+            this.circuitBreaker = circuitBreaker;
+        }
+ 
+        public virtual void ProtectedCodeIsAboutToBeCalled() { }
+        public virtual void ProtectedCodeHasBeenCalled() { }
+        public virtual void ActUponException(Exception e) { }
+    }
+ 
+    private class ClosedState : CircuitBreakerState
+    {
+        public ClosedState(CircuitBreaker circuitBreaker)
+            : base(circuitBreaker)
+        {
+            circuitBreaker.ResetFailureCount();
+        }
+ 
+        public override void ActUponException(Exception e)
+        {
+            if (circuitBreaker.ThresholdReached()) circuitBreaker.MoveToOpenState();
+        }
+    }
+ 
+    private class OpenState : CircuitBreakerState
+    {
+        private readonly Timer timer;
+ 
+        public OpenState(CircuitBreaker circuitBreaker)
+            : base(circuitBreaker)
+        {
+            timer = new Timer(circuitBreaker.timeout.TotalMilliseconds);
+            timer.Elapsed += TimeoutHasBeenReached;
+            timer.AutoReset = false;
+            timer.Start();
+        }
+ 
+        private void TimeoutHasBeenReached(object sender, ElapsedEventArgs e)
+        {
+            circuitBreaker.MoveToHalfOpenState();
+        }
+ 
+        public override void ProtectedCodeIsAboutToBeCalled()
+        {
+            throw new OpenCircuitException();
+        }
+    }
+ 
+    private class HalfOpenState : CircuitBreakerState
+    {
+        public HalfOpenState(CircuitBreaker circuitBreaker) : base(circuitBreaker) { }
+ 
+        public override void ActUponException(Exception e)
+        {
+            circuitBreaker.MoveToOpenState();
+        }
+ 
+        public override void ProtectedCodeHasBeenCalled()
+        {
+            circuitBreaker.MoveToClosedState();
+        }
+    }
+}
+
+    public class OpenCircuitException : Exception
+    {
+    }

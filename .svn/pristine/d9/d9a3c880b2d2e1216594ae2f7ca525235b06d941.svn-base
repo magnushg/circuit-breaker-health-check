@@ -1,0 +1,16 @@
+﻿using System;
+
+namespace HealthCheck.Services
+{
+    public interface IFoo
+    {
+    }
+
+    public class Foo : IFoo
+    {
+        public virtual void ThrowsAnError()
+        {
+            throw new Exception();
+        }
+    }
+}

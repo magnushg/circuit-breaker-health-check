@@ -1,0 +1,29 @@
+﻿using System;
+
+namespace HealthCheck.Services
+{
+    public interface IFoo
+    {
+        int GetValue(int a, int b);
+        string GetMoreValues(string s);
+    }
+
+    public class Foo : IFoo
+    {
+        public virtual int GetValue(int a, int b)
+        {
+            return a + b;
+        }
+
+        public virtual string GetMoreValues(string s)
+        {
+            if(s == "Hello")
+            {
+                return s;
+            }
+            throw new ApplicationException();
+        }
+    }
+
+
+}

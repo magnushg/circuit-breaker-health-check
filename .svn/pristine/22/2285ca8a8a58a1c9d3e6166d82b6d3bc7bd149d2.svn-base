@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Web;
+
+namespace HealthCheck.Models
+{
+    [DataContract]
+    public class HealthCheckStatus
+    {
+        public HealthCheckStatus(string systemName)
+        {
+            SystemName = systemName;
+        }
+
+        [DataMember]
+        public string SystemName { get; set; }
+        [DataMember]
+        public string StateName { get { return State.ToString(); } }
+        [DataMember]
+        public string StateImage { get; set; }
+        [DataMember]
+        public string ExceptionMessage
+        {
+            get { return Exception != null ? Exception.Message : ""; }
+        }
+        [DataMember]
+        public string MethodName { get { return Request != null ? Request.Method.ToString() : ""; } }
+
+        public HealthState State { get; set; }
+        public Ninject.Extensions.Interception.Request.IProxyRequest Request { get; set; }
+        public Exception Exception { get; set; }
+    }
+}

@@ -1,0 +1,51 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+using HealthCheck.Services;
+
+namespace HealthCheck.Controllers
+{
+    public class ValuesController : ApiController
+    {
+        private readonly IFoo _foo;
+        private readonly IBar _bar;
+
+        public ValuesController(IFoo foo, IBar bar)
+        {
+            _foo = foo;
+            _bar = bar;
+        }
+
+        // GET api/values
+        public IEnumerable<string> Get()
+        {
+            return new string[] {_foo.GetValue(5, 6).ToString() + _foo.GetMoreValues("Goodbye") };
+        }
+
+        // GET api/values/5
+        public string Get(string id, int a)
+        {
+            var ab = _bar.Add(a, 2);
+            return _foo.GetMoreValues(id) + ab;
+
+        }
+
+        // POST api/values
+        public void Post([FromBody]string value)
+        {
+        }
+
+        // PUT api/values/5
+        public void Put(int id, [FromBody]string value)
+        {
+        }
+
+        // DELETE api/values/5
+        public void Delete(int id)
+        {
+        }
+    }
+}
