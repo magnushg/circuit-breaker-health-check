@@ -65,13 +65,11 @@ namespace HealthCheck.App_Start
         {
             kernel.Bind<IHealthCheckRepository>().To<HealthCheckRepository>().InSingletonScope();
 
-            var stringService = kernel.Bind<IStringService>().To<StringService>();
-            stringService.Intercept().With<TimingInterceptor>();
-            stringService.Intercept().With(new CircuitBreaker(1, 60, "String Service", kernel.Get<IHealthCheckRepository>()));
+            kernel.Bind<IStringService>().To<StringService>().Intercept().With(new CircuitBreaker(1, 60, "String Service", kernel.Get<IHealthCheckRepository>()));
 
-            var mathService = kernel.Bind<IMathService>().To<MathService>().Intercept().With( new CircuitBreaker(3, 10, "Math Service", kernel.Get<IHealthCheckRepository>()));
+            kernel.Bind<IMathService>().To<MathService>().Intercept().With( new CircuitBreaker(3, 10, "Math Service", kernel.Get<IHealthCheckRepository>()));
 
-            var alwaysFails = kernel.Bind<IAlwaysFails>().To<AlwaysFails>().Intercept().With(new CircuitBreaker(1, 10, "Fail service", kernel.Get<IHealthCheckRepository>()));
+            kernel.Bind<IAlwaysFails>().To<AlwaysFails>().Intercept().With(new CircuitBreaker(1, 10, "Fail service", kernel.Get<IHealthCheckRepository>()));
 
         }        
     }
